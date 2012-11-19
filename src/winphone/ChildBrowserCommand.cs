@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,10 +11,12 @@ using System.Windows.Shapes;
 using Microsoft.Phone.Controls;
 using System.Diagnostics;
 using System.Runtime.Serialization;
-using WP7GapClassLib.PhoneGap.UI;
+using WP7CordovaClassLib.Cordova;
+using WP7CordovaClassLib.Cordova.Commands;
+using WP7CordovaClassLib.Cordova.JSON;
 using Microsoft.Phone.Shell;
 
-namespace WP7GapClassLib.PhoneGap.Commands
+namespace WP7CordovaClassLib.Cordova.Commands
 {
     [DataContract]
     public class BrowserOptions
@@ -38,12 +40,13 @@ namespace WP7GapClassLib.PhoneGap.Commands
         {
             BrowserOptions opts = JSON.JsonHelper.Deserialize<BrowserOptions>(options);
 
-            Uri loc = new Uri(opts.url);
-
+            Uri loc = new Uri(Uri.EscapeUriString(opts.url));
+            
             Deployment.Current.Dispatcher.BeginInvoke(() =>
             {
                 if (browser != null)
                 {
+                  MessageBox.Show("--");
                     browser.IsGeolocationEnabled = opts.isGeolocationEnabled;
                     browser.Navigate(loc);
                 }
@@ -52,12 +55,14 @@ namespace WP7GapClassLib.PhoneGap.Commands
                     PhoneApplicationFrame frame = Application.Current.RootVisual as PhoneApplicationFrame;
                     if (frame != null)
                     {
+            
                         PhoneApplicationPage page = frame.Content as PhoneApplicationPage;
                         if (page != null)
                         {
                             Grid grid = page.FindName("LayoutRoot") as Grid;
                             if (grid != null)
                             {
+            
                                 browser = new WebBrowser();
                                 browser.Navigate(loc);
 
@@ -106,7 +111,7 @@ namespace WP7GapClassLib.PhoneGap.Commands
 
         void browser_LoadCompleted(object sender, System.Windows.Navigation.NavigationEventArgs e)
         {
-            
+
         }
 
         void fwdButton_Click(object sender, EventArgs e)
@@ -117,7 +122,7 @@ namespace WP7GapClassLib.PhoneGap.Commands
                 {
                     browser.InvokeScript("execScript", "history.forward();");
                 }
-                catch(Exception)
+                catch (Exception)
                 {
 
                 }
@@ -145,7 +150,7 @@ namespace WP7GapClassLib.PhoneGap.Commands
         }
 
 
-        public void close(string options="")
+        public void close(string options = "")
         {
             if (browser != null)
             {
@@ -166,13 +171,18 @@ namespace WP7GapClassLib.PhoneGap.Commands
                         }
                     }
                     browser = null;
+                    string message = JSON.JsonHelper.Serialize("{\"type\":\"close\"}");
+                    PluginResult result = new PluginResult(PluginResult.Status.OK, message);
+                    result.KeepCallback = false;
+                    this.DispatchCommandResult(result);
                 });
             }
         }
 
         void browser_Navigated(object sender, System.Windows.Navigation.NavigationEventArgs e)
         {
-            string message = "{\"type\":\"locationChanged\", \"location\":\"" + e.Uri.AbsoluteUri + "\"}";
+            string message = JSON.JsonHelper.Serialize("{\"type\":\"locationChanged\",\"location\":\"" + e.Uri.AbsoluteUri + "\"}");
+            //string message = "'{\"type\":\"locationChanged\", \"location\":\"" + e.Uri.AbsoluteUri + "\"}'";
             PluginResult result = new PluginResult(PluginResult.Status.OK, message);
             result.KeepCallback = true;
             this.DispatchCommandResult(result);
@@ -180,7 +190,7 @@ namespace WP7GapClassLib.PhoneGap.Commands
 
         void browser_NavigationFailed(object sender, System.Windows.Navigation.NavigationFailedEventArgs e)
         {
-            string message = "{\"type\":\"navigationError\",\"location\":\"" + e.Uri.AbsoluteUri + "\"}";
+            string message = JSON.JsonHelper.Serialize("{\"type\":\"navigationError\",\"location\":\"" + e.Uri.AbsoluteUri + "\"}");
             PluginResult result = new PluginResult(PluginResult.Status.ERROR, message);
             result.KeepCallback = true;
             this.DispatchCommandResult(result);
@@ -188,7 +198,8 @@ namespace WP7GapClassLib.PhoneGap.Commands
 
         void browser_Navigating(object sender, NavigatingEventArgs e)
         {
-            string message = "{\"type\":\"locationAboutToChange\",\"location\":\"" + e.Uri.AbsoluteUri + "\"}";
+            string message = JSON.JsonHelper.Serialize("{\"type\":\"locationAboutToChange\",\"location\":\"" + e.Uri.AbsoluteUri + "\"}");
+            //string message = "'{\"type\":\"locationAboutToChange\",\"location\":\"" + e.Uri.AbsoluteUri + "\"}'";
             PluginResult result = new PluginResult(PluginResult.Status.OK, message);
             result.KeepCallback = true;
             this.DispatchCommandResult(result);
